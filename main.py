@@ -3,9 +3,12 @@ import numpy as np
 import time  # -- 프레임 계산을 위해 사용
 import math
 
-min_confidence = 0.5
 
-def detectAndDisplay(frame):
+def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt):
+    AVG_human_dog_distance = 0.0
+
+    min_confidence = 0.5
+
     start_time = time.time()
     img = cv2.resize(frame, None, fx=0.8, fy=0.8)
     height, width, channels = img.shape
@@ -29,7 +32,7 @@ def detectAndDisplay(frame):
     dog_x = 0.0
     dog_y = 0.0
     # -- 인간과 강아지 평균 중심 거리 차이
-    AVG_human_dog_distance = 0.0
+
     human_dog_distance = 0.0
 
     for out in outs:
@@ -60,8 +63,6 @@ def detectAndDisplay(frame):
     indexes = cv2.dnn.NMSBoxes(boxes, confidences, min_confidence, 0.4)
     font = cv2.FONT_HERSHEY_DUPLEX
 
-    dog_human_sameTime_cnt = 0
-
     dog_exist = False
     human_exist = False
     for i in range(len(boxes)):
@@ -81,12 +82,29 @@ def detectAndDisplay(frame):
                 dog_exist = True
 
     if human_exist == True and dog_exist == True:
-        print(f"Human AND Dog BOTH exitst !!!!! : ")
+        human_dog_distance = math.sqrt((human_x - dog_x)**2 + (human_y - dog_y)**2)
+        SUM_human_dog_distance += human_dog_distance
+        human_dog_sameFrame_cnt += 1
+
+        try:
+            AVG_human_dog_distance = SUM_human_dog_distance / human_dog_sameFrame_cnt
+        except ZeroDivisionError:
+            print(ZeroDivisionError)
+        print(f"Human AND Dog BOTH exitst !!!!! AVG DISTANCE: {AVG_human_dog_distance} NOW DISTANCE: {human_dog_distance} HUMANXDOG_cnt: {human_dog_sameFrame_cnt}")
+
+        if abs(AVG_human_dog_distance - human_dog_distance) >= 100:
+            print("|------------------------------|")
+            print("|                              |")
+            print("|      DOG LOST!!!!!!          |")
+            print("|                              |")
+            print("|------------------------------|")
 
     end_time = time.time()
     process_time = end_time - start_time
     print("=== A frame took {:.3f} seconds".format(process_time))
     cv2.imshow("YOLO test", img)
+
+    return (SUM_human_dog_distance, human_dog_sameFrame_cnt)
 
 
 # -- yolo 포맷 및 클래스명 불러오기
@@ -108,18 +126,22 @@ output_layers = [layer_names[i-1] for i in net.getUnconnectedOutLayers()]
 colors = np.random.uniform(0, 255, size=(len(classes), 3))
 
 # -- 비디오 활성화
-cap = cv2.VideoCapture(0)  # -- 웹캠 사용시 vedio_path를 0 으로 변경
-if not cap.isOpened:
-    print('--(!)Error opening video capture')
-    exit(0)
-while True:
-    ret, frame = cap.read()
-    if frame is None:
-        print('--(!) No captured frame -- Break!')
-        break
-    detectAndDisplay(frame)
-    # -- q 입력시 종료
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+if __name__=="__main__":
 
-cv2.destroyAllWindows()
+    cap = cv2.VideoCapture(0)  # -- 웹캠 사용시 vedio_path를 0 으로 변경
+    if not cap.isOpened:
+        print('--(!)Error opening video capture')
+        exit(0)
+    SUM_human_dog_distance = 0.0
+    human_dog_sameFrame_cnt = 0
+    while True:
+        ret, frame = cap.read()
+        if frame is None:
+            print('--(!) No captured frame -- Break!')
+            break
+        (SUM_human_dog_distance, human_dog_sameFrame_cnt) = detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt)
+        # -- q 입력시 종료
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cv2.destroyAllWindows()

@@ -98,6 +98,7 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt):
             print("|      DOG LOST!!!!!!          |")
             print("|                              |")
             print("|------------------------------|")
+            cv2.imwrite('screenshot.png', frame)
 
     end_time = time.time()
     process_time = end_time - start_time

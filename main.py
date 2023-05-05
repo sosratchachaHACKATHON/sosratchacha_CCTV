@@ -28,6 +28,10 @@ def detectAndDisplay(frame):
     # -- 강아지 중심 좌표
     dog_x = 0.0
     dog_y = 0.0
+    # -- 인간과 강아지 평균 중심 거리 차이
+    AVG_human_dog_distance = 0.0
+    human_dog_distance = 0.0
+
     for out in outs:
         for detection in out:
             scores = detection[5:]
@@ -56,19 +60,29 @@ def detectAndDisplay(frame):
     indexes = cv2.dnn.NMSBoxes(boxes, confidences, min_confidence, 0.4)
     font = cv2.FONT_HERSHEY_DUPLEX
 
+    dog_human_sameTime_cnt = 0
+
+    dog_exist = False
+    human_exist = False
     for i in range(len(boxes)):
         if i in indexes:
             x, y, w, h = boxes[i]
             label = "{}: {:.2f}".format(classes[class_ids[i]], confidences[i] * 100)
-            print(i, label)
+
             color = colors[i]
             cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
             cv2.putText(img, label, (x, y - 5), font, 1, color, 1)
 
             if classes[class_ids[i]] == 'person':
                 print(f"HUMAN Center: {human_x}, {human_y}")
+                human_exist = True
             if classes[class_ids[i]] == 'dog':
                 print(f"DOG Center: {dog_x}, {dog_y}")
+                dog_exist = True
+
+    if human_exist == True and dog_exist == True:
+        print(f"Human AND Dog BOTH exitst !!!!! : ")
+
     end_time = time.time()
     process_time = end_time - start_time
     print("=== A frame took {:.3f} seconds".format(process_time))

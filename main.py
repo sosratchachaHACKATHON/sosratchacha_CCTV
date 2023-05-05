@@ -4,7 +4,7 @@ import time  # -- 프레임 계산을 위해 사용
 import math
 
 
-def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt):
+def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt):
     AVG_human_dog_distance = 0.0
 
     min_confidence = 0.5
@@ -85,6 +85,7 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt):
         human_dog_distance = math.sqrt((human_x - dog_x)**2 + (human_y - dog_y)**2)
         SUM_human_dog_distance += human_dog_distance
         human_dog_sameFrame_cnt += 1
+        dog_away_cnt += 1
 
         try:
             AVG_human_dog_distance = SUM_human_dog_distance / human_dog_sameFrame_cnt
@@ -92,20 +93,21 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt):
             print(ZeroDivisionError)
         print(f"Human AND Dog BOTH exitst !!!!! AVG DISTANCE: {AVG_human_dog_distance} NOW DISTANCE: {human_dog_distance} HUMANXDOG_cnt: {human_dog_sameFrame_cnt}")
 
-        if abs(AVG_human_dog_distance - human_dog_distance) >= 100:
+        if abs(AVG_human_dog_distance - human_dog_distance) >= 300 and dog_away_cnt >= 0:
             print("|------------------------------|")
             print("|                              |")
             print("|      DOG LOST!!!!!!          |")
             print("|                              |")
             print("|------------------------------|")
             cv2.imwrite('screenshot.png', frame)
+            dog_away_cnt = 0
 
     end_time = time.time()
     process_time = end_time - start_time
     print("=== A frame took {:.3f} seconds".format(process_time))
     cv2.imshow("YOLO test", img)
 
-    return (SUM_human_dog_distance, human_dog_sameFrame_cnt)
+    return (SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt)
 
 
 # -- yolo 포맷 및 클래스명 불러오기
@@ -135,12 +137,13 @@ if __name__=="__main__":
         exit(0)
     SUM_human_dog_distance = 0.0
     human_dog_sameFrame_cnt = 0
+    dog_away_cnt = 0
     while True:
         ret, frame = cap.read()
         if frame is None:
             print('--(!) No captured frame -- Break!')
             break
-        (SUM_human_dog_distance, human_dog_sameFrame_cnt) = detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt)
+        (SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt) = detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt)
         # -- q 입력시 종료
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

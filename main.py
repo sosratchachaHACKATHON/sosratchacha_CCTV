@@ -7,7 +7,7 @@ import requests as rq
 from datetime import datetime
 
 
-def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt, requests=None):
+def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt, dog_only_cnt):
     # 시간 부분
     locale.setlocale(locale.LC_TIME, "ko_KR.UTF-8")
     current_time = datetime.now()
@@ -17,12 +17,12 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
     # CCTV라고 상정하고 다음 변수를 조정합니다.
 
     #1. 전자관
-    xCoordi = 37.600718
-    yCoordi = 126.864457
-    locationAlias = '항공대 전자관'
-    animalType = '강아지'
-    content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
-    boardType = "throw"
+    # xCoordi = 37.600718
+    # yCoordi = 126.864457
+    # locationAlias = '항공대 전자관'
+    # animalType = '강아지'
+    # content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
+    # boardType = "throw"
 
     #2. 과학관
     # xCoordi = 37.601658
@@ -43,10 +43,18 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
     # 4. 학생회관
     # xCoordi = 37.600012
     # yCoordi = 126.864733
-    # locationAlias = '항공대 강의동'
+    # locationAlias = '항공대 학생회관'
     # animalType = '강아지'
     # content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
     # boardType = "throw"
+
+    # 4. 비전홀
+    xCoordi = 37.599738
+    yCoordi = 126.865488
+    locationAlias = '항공대 비전홀'
+    animalType = '강아지'
+    content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
+    boardType = "throw"
 
 
 
@@ -125,8 +133,33 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
             if classes[class_ids[i]] == 'dog':
                 print(f"DOG Center: {dog_x}, {dog_y}")
                 dog_exist = True
+    if human_exist == False and dog_exist == True:
+        # 강아지 혼자만 돌아다니는 경우
+        dog_only_cnt += 1
+    if dog_only_cnt >= 8:
+        print("|------------------------------|")
+        print("|                              |")
+        print("|      DOG MIA FOUND!!!!!!     |")
+        print("|                              |")
+        print("|------------------------------|")
+        cv2.imwrite('screenshot.png', frame)
+        url = "http://54.180.93.68:8000/app/board"
+        image_file_path = "./screenshot.png"
+        content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 미아 정황입니다."
+        payload = {"xCoordi": xCoordi, "yCoordi": yCoordi, "where": locationAlias, "type": animalType,
+                   "content": content, "boardType": "lost"}
+        headers = {}
+        files = [
+            ('image', ('screenshot.png', open(image_file_path, 'rb'), 'image/png'))
+        ]
+        print(payload)
+
+        response = rq.post(url, headers=headers, data=payload, files=files)
+        print(response)
+        dog_only_cnt = 0
 
     if human_exist == True and dog_exist == True:
+        # 인간이 강아지를 잃어버리거나, 유기한 경우
         human_dog_distance = math.sqrt((human_x - dog_x)**2 + (human_y - dog_y)**2)
         SUM_human_dog_distance += human_dog_distance
         human_dog_sameFrame_cnt += 1
@@ -138,7 +171,7 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
             print(ZeroDivisionError)
         print(f"Human AND Dog BOTH exitst !!!!! AVG DISTANCE: {AVG_human_dog_distance} NOW DISTANCE: {human_dog_distance} HUMANXDOG_cnt: {human_dog_sameFrame_cnt}")
 
-        if abs(AVG_human_dog_distance - human_dog_distance) >= 300 and dog_away_cnt >= 0:
+        if abs(AVG_human_dog_distance - human_dog_distance) >= 300 and dog_away_cnt >= 5:
             print("|------------------------------|")
             print("|                              |")
             print("|      DOG LOST!!!!!!          |")
@@ -165,7 +198,7 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
     print("=== A frame took {:.3f} seconds".format(process_time))
     cv2.imshow("YOLO test", img)
 
-    return (SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt)
+    return (SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt, dog_only_cnt)
 
 
 # -- yolo 포맷 및 클래스명 불러오기
@@ -196,12 +229,13 @@ if __name__=="__main__":
     SUM_human_dog_distance = 0.0
     human_dog_sameFrame_cnt = 0
     dog_away_cnt = 0
+    dog_only_cnt = 0
     while True:
         ret, frame = cap.read()
         if frame is None:
             print('--(!) No captured frame -- Break!')
             break
-        (SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt) = detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt)
+        (SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt, dog_only_cnt) = detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt, dog_only_cnt)
         # -- q 입력시 종료
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

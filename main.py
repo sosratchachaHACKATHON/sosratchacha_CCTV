@@ -3,14 +3,16 @@ import numpy as np
 import time  # -- 프레임 계산을 위해 사용
 import math
 import locale
+import requests as rq
 from datetime import datetime
 
 
-def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt):
+def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt, requests=None):
     # 시간 부분
     locale.setlocale(locale.LC_TIME, "ko_KR.UTF-8")
     current_time = datetime.now()
     formatted_time = current_time.strftime("%-m월 %-d일 %-I시 %-M분")
+
 
     # CCTV라고 상정하고 다음 변수를 조정합니다.
 
@@ -45,6 +47,8 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
     # animalType = '강아지'
     # content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
     # boardType = "throw"
+
+
 
     AVG_human_dog_distance = 0.0
 
@@ -141,6 +145,19 @@ def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog
             print("|                              |")
             print("|------------------------------|")
             cv2.imwrite('screenshot.png', frame)
+            # API POST
+            url = "http://54.180.93.68:8000/app/board"
+            image_file_path = "./screenshot.png"
+            payload = {"xCoordi": xCoordi, "yCoordi": yCoordi, "where": locationAlias, "type": animalType,
+                       "content": content, "boardType": boardType}
+            headers = {}
+            files = [
+                ('image', ('screenshot.png', open(image_file_path, 'rb'), 'image/png'))
+            ]
+            print(payload)
+
+            response = rq.post(url, headers=headers, data=payload, files=files)
+            print(response)
             dog_away_cnt = 0
 
     end_time = time.time()

@@ -2,9 +2,50 @@ import cv2
 import numpy as np
 import time  # -- 프레임 계산을 위해 사용
 import math
+import locale
+from datetime import datetime
 
 
 def detectAndDisplay(frame, SUM_human_dog_distance, human_dog_sameFrame_cnt, dog_away_cnt):
+    # 시간 부분
+    locale.setlocale(locale.LC_TIME, "ko_KR.UTF-8")
+    current_time = datetime.now()
+    formatted_time = current_time.strftime("%-m월 %-d일 %-I시 %-M분")
+
+    # CCTV라고 상정하고 다음 변수를 조정합니다.
+
+    #1. 전자관
+    xCoordi = 37.600718
+    yCoordi = 126.864457
+    locationAlias = '항공대 전자관'
+    animalType = '강아지'
+    content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
+    boardType = "throw"
+
+    #2. 과학관
+    # xCoordi = 37.601658
+    # yCoordi = 126.864751
+    # locationAlias = '항공대 과학관'
+    # animalType = '강아지'
+    # content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
+    # boardType = "throw"
+
+    # 3. 강의동
+    # xCoordi = 37.599979
+    # yCoordi = 126.866827
+    # locationAlias = '항공대 강의동'
+    # animalType = '강아지'
+    # content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
+    # boardType = "throw"
+
+    # 4. 학생회관
+    # xCoordi = 37.600012
+    # yCoordi = 126.864733
+    # locationAlias = '항공대 강의동'
+    # animalType = '강아지'
+    # content = f"{formatted_time} {locationAlias}에서 포착된 {animalType} 유기/잃어버림 정황입니다."
+    # boardType = "throw"
+
     AVG_human_dog_distance = 0.0
 
     min_confidence = 0.5
